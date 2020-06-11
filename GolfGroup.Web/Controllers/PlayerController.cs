@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using GolfGroup.Api.Interfaces;
@@ -13,32 +12,32 @@ namespace GolfGroup.Api.Controllers
   [ApiController]
   public class PlayerController : ControllerBase
   {
-    private readonly IRepository<Player> _playerRepository;
+    private readonly IRepository<Player> _repository;
     private readonly IMapper _mapper;
 
-    public PlayerController(IRepository<Player> playerRepository, IMapper mapper)
+    public PlayerController(IRepository<Player> repository, IMapper mapper)
     {
-      _playerRepository = playerRepository;
+      _repository = repository;
       _mapper = mapper;
     }
 
     [HttpGet]
     public IEnumerable<PlayerSummaryModel> Get()
     {
-      return _mapper.Map<IEnumerable<PlayerSummaryModel>>(_playerRepository.AsQueryable());
+      return _mapper.Map<IEnumerable<PlayerSummaryModel>>(_repository.AsQueryable());
     }
 
-    [HttpGet("{id}", Name = "Get")]
+    [HttpGet("{id}")]
     public async Task<PlayerModel> Get(string id)
     {
-      return _mapper.Map<PlayerModel>(await _playerRepository.FindByIdAsync(id));
+      return _mapper.Map<PlayerModel>(await _repository.FindByIdAsync(id));
     }
 
     [HttpPost]
     public async Task<PlayerModel> Post([FromBody] PlayerCreateUpdateModel value)
     {
       var newPlayer = _mapper.Map<Player>(value);
-      await _playerRepository.InsertOneAsync(newPlayer);
+      await _repository.InsertOneAsync(newPlayer);
       return _mapper.Map<PlayerModel>(newPlayer);
     }
 
@@ -48,14 +47,14 @@ namespace GolfGroup.Api.Controllers
       var updatePlayer = _mapper.Map<Player>(value);
       updatePlayer.Id = ObjectId.Parse(id);
 
-      await _playerRepository.ReplaceOneAsync(updatePlayer);
+      await _repository.ReplaceOneAsync(updatePlayer);
       return _mapper.Map<PlayerModel>(updatePlayer);
     }
 
     [HttpDelete("{id}")]
     public void Delete(string id)
     {
-      _playerRepository.DeleteById(id);
+      _repository.DeleteById(id);
     }
   }
 }

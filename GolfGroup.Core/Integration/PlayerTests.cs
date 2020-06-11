@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using GolfGroup.Api.Models;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.Hosting;
+using GolfGroup.Api.Tests.Helpers;
 using Newtonsoft.Json;
 using Xunit;
 
@@ -66,32 +63,5 @@ namespace GolfGroup.Api.Tests.Integration
       }
       throw new InvalidOperationException($"Failed: {response.StatusCode}:\n{await response.Content.ReadAsStringAsync()}");
     }
-  }
-
-  public abstract class IntegrationTestBase
-  {
-    protected IHost _host;
-    protected HttpClient _client;
-
-    protected IntegrationTestBase()
-    {
-      var hostBuilder = new HostBuilder()
-        .ConfigureWebHost(webHost =>
-        {
-          // Add TestServer
-          webHost.UseTestServer();
-          webHost.UseStartup<Startup>();
-        });
-
-      _host = hostBuilder.StartAsync().Result;
-      _client = _host.GetTestClient();
-    }
-  }
-
-  public class JsonContent : StringContent
-  {
-    public JsonContent(object obj) :
-      base(JsonConvert.SerializeObject(obj), Encoding.UTF8, "application/json")
-    { }
   }
 }
