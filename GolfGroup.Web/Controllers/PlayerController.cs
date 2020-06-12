@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using GolfGroup.Api.Interfaces;
@@ -8,7 +9,7 @@ using MongoDB.Bson;
 
 namespace GolfGroup.Api.Controllers
 {
-  [Route("api/[controller]")]
+  [Route(ControllerRoutes.Player)]
   [ApiController]
   public class PlayerController : ControllerBase
   {
@@ -25,6 +26,14 @@ namespace GolfGroup.Api.Controllers
     public IEnumerable<PlayerSummaryModel> Get()
     {
       return _mapper.Map<IEnumerable<PlayerSummaryModel>>(_repository.AsQueryable());
+    }
+
+    [Route(ControllerRoutes.PlayerForGroup)]
+    [HttpGet]
+    public IEnumerable<PlayerSummaryModel> GetForGroup(string id)
+    {
+      return _mapper.Map<IEnumerable<PlayerSummaryModel>>(
+        _repository.AsQueryable().Where(_=>_.Groups.Contains(id)));
     }
 
     [HttpGet("{id}")]

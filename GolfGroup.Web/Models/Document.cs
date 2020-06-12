@@ -8,5 +8,6 @@ namespace GolfGroup.Api.Models
   {
     public ObjectId Id { get; set; }
     public DateTime CreatedAt => Id.CreationTime;
+    public string CreatedBy { get; set; }
   }
 }

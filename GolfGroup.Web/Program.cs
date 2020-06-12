@@ -1,20 +1,31 @@
+using System.Threading.Tasks;
+using GolfGroup.Api.Helpers;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GolfGroup.Api
 {
   public class Program
   {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
-      CreateHostBuilder(args).Build().Run();
+      var webHost = CreateWebHostBuilder(args).Build();
+
+      // Create a new scope
+      using (var scope = webHost.Services.CreateScope())
+      {
+        //Do the migration asynchronously
+        await DemoDataHelper.Populate(scope.ServiceProvider);
+      }
+
+      // Run the WebHost, and start accepting requests
+      // There's an async overload, so we may as well use it
+      await webHost.RunAsync();
     }
 
-    public static IHostBuilder CreateHostBuilder(string[] args) =>
-        Host.CreateDefaultBuilder(args)
-            .ConfigureWebHostDefaults(webBuilder =>
-            {
-              webBuilder.UseStartup<Startup>();
-            });
+    public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
+      WebHost.CreateDefaultBuilder(args)
+        .UseStartup<Startup>();
   }
 }

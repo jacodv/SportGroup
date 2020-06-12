@@ -6,6 +6,7 @@ using GolfGroup.Api.Data;
 using GolfGroup.Api.Interfaces;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace GolfGroup.Api.Models
 {
@@ -16,13 +17,13 @@ namespace GolfGroup.Api.Models
     {
       Id = ObjectId.GenerateNewId();
     }
-    public string CreatedBy { get; set; }
-
+    
     public string FirstName { get; set; }
     public string LastName { get; set; }
     public string NickName { get; set; }
     public string Email { get; set; }
     public string Mobile { get; set; }
+    [BsonDateTimeOptions(DateOnly = true)]
     public DateTime DateOfBirth { get; set; }
 
     public List<string> Groups { get; set; }
@@ -39,12 +40,10 @@ namespace GolfGroup.Api.Models
 
       CreateMap<PlayerCreateUpdateModel, Player>();
     }
-  } 
+  }
 
-  public class PlayerModel
+  public class PlayerModel: DocumentModel
   {
-    public string Id { get; set; }
-
     public string FirstName { get; set; }
     public string LastName { get; set; }
     public string NickName { get; set; }
@@ -71,6 +70,7 @@ namespace GolfGroup.Api.Models
     public string LastName { get; set; }
     public string NickName { get; set; }
     [Required]
+    [EmailAddress]
     public string Email { get; set; }
     public string Mobile { get; set; }
     public DateTime DateOfBirth { get; set; }

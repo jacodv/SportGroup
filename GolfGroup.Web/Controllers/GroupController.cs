@@ -9,7 +9,7 @@ using MongoDB.Bson;
 
 namespace GolfGroup.Api.Controllers
 {
-  [Route("api/[controller]")]
+  [Route(ControllerRoutes.Group)]
   [ApiController]
   public class GroupController : ControllerBase
   {
@@ -32,6 +32,13 @@ namespace GolfGroup.Api.Controllers
     public async Task<GroupModel> Get(string id)
     {
       return _mapper.Map<GroupModel>(await _repository.FindByIdAsync(id));
+    }
+
+    [Route("name/{name}")]
+    [HttpGet]
+    public async Task<GroupModel> GetByName(string name)
+    {
+      return _mapper.Map<GroupModel>(await _repository.FindOneAsync(x=>x.Name==name));
     }
 
     [HttpPost]

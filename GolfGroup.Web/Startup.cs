@@ -1,5 +1,7 @@
+using System;
 using AutoMapper;
 using GolfGroup.Api.Data;
+using GolfGroup.Api.Helpers;
 using GolfGroup.Api.Interfaces;
 using GolfGroup.Api.Settings;
 using Microsoft.AspNetCore.Builder;
@@ -31,11 +33,12 @@ namespace GolfGroup.Api
 
       services.AddScoped(typeof(IRepository<>), typeof(MongoRepository<>));
 
-      services.AddControllers().AddJsonOptions(opts => opts.JsonSerializerOptions.PropertyNamingPolicy = null);
+      services.AddControllers()
+        .AddJsonOptions(opts => opts.JsonSerializerOptions.PropertyNamingPolicy = null);
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-    public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider serviceProvider)
     {
       if (env.IsDevelopment())
       {
