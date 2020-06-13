@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Net.Http;
 using System.Threading.Tasks;
+using FluentAssertions;
 using GolfGroup.Api.Helpers;
+using GolfGroup.Api.Tests.Helpers;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -52,6 +54,22 @@ namespace GolfGroup.Api.Tests.Integration
     protected async Task<T> _get<T>(string url)
     {
       return await _evaluateResponse<T>(await _client.GetAsync(url));
+    }
+
+    protected async Task _deleteAndValidate(string id, string baseUrl)
+    {
+      var deleteResponse = await _client.DeleteAsync($"{baseUrl}/{id}");
+      deleteResponse.IsSuccessStatusCode.Should().BeTrue();
+      var getResponse = await _client.GetAsync($"{baseUrl}/{id}");
+      getResponse.IsSuccessStatusCode.Should().BeTrue();
+      getResponse.Content.ReadAsStringAsync().Result.Should().BeNullOrEmpty();
+    }
+
+    protected async Task<T> _post<T>(string url, object payload=null)
+    {
+      if (payload == null)
+        return await _evaluateResponse<T>(await _client.PostAsync(url, null));
+      return await _evaluateResponse<T>(await _client.PostAsync(url, new JsonContent(payload)));
     }
   }
 }

@@ -13,11 +13,6 @@ namespace GolfGroup.Api.Models
   [BsonCollection("player")]
   public class Player : Document
   {
-    public Player()
-    {
-      Id = ObjectId.GenerateNewId();
-    }
-    
     public string FirstName { get; set; }
     public string LastName { get; set; }
     public string NickName { get; set; }
@@ -31,13 +26,46 @@ namespace GolfGroup.Api.Models
     public bool IsEnabled { get; set; } = true;
   }
 
+  public class PlayerSummary
+  {
+    public ObjectId Id { get; set; }
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
+    public string NickName { get; set; }
+    public DateTime DateOfBirth { get; set; }
+
+    #region Equality members
+
+    protected bool Equals(PlayerSummary other)
+    {
+      return string.Equals(Id, other.Id);
+    }
+
+    public override bool Equals(object obj)
+    {
+      if (ReferenceEquals(null, obj)) return false;
+      if (ReferenceEquals(this, obj)) return true;
+      if (obj.GetType() != this.GetType()) return false;
+      return Equals((PlayerSummary)obj);
+    }
+
+    public override int GetHashCode()
+    {
+      return (Id != null ? Id.GetHashCode() : 0);
+    }
+
+    #endregion
+  }
+
   public class PlayerProfile : Profile
   {
     public PlayerProfile()
     {
+      CreateMap<Player, PlayerSummary>();
       CreateMap<Player, PlayerModel>();
       CreateMap<Player, PlayerSummaryModel>();
 
+      CreateMap<PlayerSummary, PlayerSummaryModel>();
       CreateMap<PlayerCreateUpdateModel, Player>();
     }
   }
@@ -56,6 +84,7 @@ namespace GolfGroup.Api.Models
 
   public class PlayerSummaryModel
   {
+    public string Id { get; set; }
     public string FirstName { get; set; }
     public string LastName { get; set; }
     public string NickName { get; set; }

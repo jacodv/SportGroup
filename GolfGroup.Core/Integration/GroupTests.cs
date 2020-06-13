@@ -45,11 +45,7 @@ namespace GolfGroup.Api.Tests.Integration
       get.Name.Should().Be(inserted.Name);
 
       // Delete action
-      var deleteResponse = await _client.DeleteAsync($"{BaseUrl}/{inserted.Id}");
-      deleteResponse.IsSuccessStatusCode.Should().BeTrue();
-      var getResponse = await _client.GetAsync($"{BaseUrl}/{inserted.Id}");
-      getResponse.IsSuccessStatusCode.Should().BeTrue();
-      getResponse.Content.ReadAsStringAsync().Result.Should().BeNullOrEmpty();
+      await _deleteAndValidate(inserted.Id, BaseUrl);
     }
   }
 }

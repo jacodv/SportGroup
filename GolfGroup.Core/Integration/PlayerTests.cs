@@ -56,11 +56,7 @@ namespace GolfGroup.Api.Tests.Integration
       getPlayer.FirstName.Should().Be(insertedPlayer.FirstName);
 
       // Delete action
-      var deleteResponse = await _client.DeleteAsync($"{BaseUrl}/{insertedPlayer.Id}");
-      deleteResponse.IsSuccessStatusCode.Should().BeTrue();
-      var getResponse = await _client.GetAsync($"{BaseUrl}/{insertedPlayer.Id}");
-      getResponse.IsSuccessStatusCode.Should().BeTrue();
-      getResponse.Content.ReadAsStringAsync().Result.Should().BeNullOrEmpty();
+      await _deleteAndValidate(insertedPlayer.Id, BaseUrl);
     }
 
     [Fact]
@@ -70,7 +66,7 @@ namespace GolfGroup.Api.Tests.Integration
       var demoGroup= await _get<GroupModel>($"{ControllerRoutes.Group}/name/{DemoDataHelper.DemoGroupName}");
 
       //action
-      var players = await _get<IList<Player>>($"{BaseUrl}/group/{demoGroup.Id}");
+      var players = await _get<IList<PlayerModel>>($"{BaseUrl}/group/{demoGroup.Id}");
 
       // assert
       players.Any().Should().BeTrue();
