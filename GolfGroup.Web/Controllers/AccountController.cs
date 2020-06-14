@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using GolfGroup.Api.Models;
 using GolfGroup.Api.Settings;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
@@ -22,14 +24,20 @@ namespace GolfGroup.Api.Controllers
   public class AccountController: ControllerBase
   {
     private readonly IRepository<User> _users;
+    private readonly IRepository<Group> _groups;
+    private readonly IRepository<Player> _players;
     private readonly IMapper _mapper;
     private readonly IDatabaseSettings _databaseSettings;
 
-    public AccountController(IRepository<User> users, 
+    public AccountController(IRepository<User> users,
+      IRepository<Group> groups,
+      IRepository<Player> players,
       IOptions<DatabaseSettings> databaseSettings,
       IMapper mapper)
     {
       _users = users;
+      _groups = groups;
+      _players = players;
       _mapper = mapper;
       _databaseSettings = databaseSettings.Value;
     }
@@ -77,25 +85,25 @@ namespace GolfGroup.Api.Controllers
       });
     }
 
-    private async Task<User> _login(string username, string password)
+    [AllowAnonymous]
+    [HttpPost("register")]
+    public async Task<ActionResult<UserModel>> RegisterAsPlayer([FromBody] PlayerRegisterModel registerModel)
     {
-      if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
-        return null;
+      if (registerModel == null)
+        return BadRequest("Invalid registration data: No data");
 
-      var user = await _users.FindOneAsync(_ => _.Email == username);
+      var existingUser = await _users.FindOneAsync(_ => _.Email == registerModel.Email);
+      if(existingUser!=null)
+       return BadRequest("Invalid registration data: Email exist");
 
-      // check if username exists
-      if (user == null)
-        return null;
+      var userModel = await Create(_mapper.Map<UserCreateModel>(registerModel));
 
-      // check if password is correct
-      var userPassword = Convert.FromBase64String(user.Password);
-      var userPasswordSalt = Convert.FromBase64String(user.PasswordSalt);
-      return !Models.User.VerifyPasswordHash(password, userPassword, userPasswordSalt) ?
-        null : 
-        user;
+      var existingPlayer = await _players.FindOneAsync(_ => _.Email == registerModel.Email);
+      if (existingPlayer != null)
+        return userModel;
 
-      // authentication successful
+      await _players.InsertOneAsync(_mapper.Map<Player>(registerModel));
+      return userModel;
     }
 
     [Route("all")]
@@ -115,19 +123,40 @@ namespace GolfGroup.Api.Controllers
       return Ok(model);
     }
 
+    [HttpPost()]
+    public async Task<ActionResult<UserModel>> Create([FromBody] UserCreateModel model)
+    {
+      // map model to entity and set id
+      var user = _mapper.Map<User>(model);
+
+      try
+      {
+        user.CreatePassword(model.Password);
+        await _validateAndAddGroups(model, user);
+
+        // update user 
+        await _users.InsertOneAsync(user);
+        return Ok(_mapper.Map<UserModel>(user));
+      }
+      catch (Exception ex)
+      {
+        // return error message if there was an exception
+        return BadRequest(new { message = ex.Message });
+      }
+    }
+
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(string id, [FromBody] UserCreateUpdateModel model)
+    public async Task<ActionResult<UserModel>> Update(string id, [FromBody] UserUpdateModel model)
     {
       // map model to entity and set id
       var user = _mapper.Map<User>(model);
       user.Id = ObjectId.Parse(id);
-      //todo hash password
 
       try
       {
         // update user 
         await _users.ReplaceOneAsync(user);
-        return Ok();
+        return Ok(_mapper.Map<UserModel>(user));
       }
       catch (Exception ex)
       {
@@ -141,6 +170,41 @@ namespace GolfGroup.Api.Controllers
     {
       await _users.DeleteByIdAsync(id);
       return Ok();
+    }
+
+    private async Task<User> _login(string username, string password)
+    {
+      if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+        return null;
+
+      var user = await _users.FindOneAsync(_ => _.Email == username);
+
+      // check if username exists
+      if (user == null)
+        return null;
+
+      // check if password is correct
+      var userPassword = Convert.FromBase64String(user.Password);
+      var userPasswordSalt = Convert.FromBase64String(user.PasswordSalt);
+      return !Models.User.VerifyPasswordHash(password, userPassword, userPasswordSalt) ?
+        null :
+        user;
+
+      // authentication successful
+    }
+    private async Task _validateAndAddGroups(UserCreateModel model, User user)
+    {
+      if (model.Groups!=null && model.Groups.Any())
+      {
+        user.Groups.Clear();
+        foreach (var groupId in model.Groups)
+        {
+          var group = await _groups.FindByIdAsync(groupId);
+          if (@group == null)
+            throw new ArgumentOutOfRangeException(nameof(model), $"Invalid group: {groupId}");
+          user.Groups.Add(@group);
+        }
+      }
     }
   }
 }

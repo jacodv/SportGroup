@@ -84,11 +84,20 @@ namespace GolfGroup.Api.Tests.Integration
       getResponse.Content.ReadAsStringAsync().Result.Should().BeNullOrEmpty();
     }
 
-    protected async Task<T> _post<T>(string url, object payload=null)
+    protected async Task<T> _post<T>(string url, object payload = null, bool isAnonymous = false)
+    {
+      var client = isAnonymous ? _anonClient : _client;
+
+      if (payload == null)
+        return await _evaluateResponse<T>(await client.PostAsync(url, null));
+      return await _evaluateResponse<T>(await client.PostAsync(url, new JsonContent(payload)));
+    }
+    protected async Task<T> _put<T>(string url, object payload = null)
     {
       if (payload == null)
-        return await _evaluateResponse<T>(await _client.PostAsync(url, null));
-      return await _evaluateResponse<T>(await _client.PostAsync(url, new JsonContent(payload)));
+        return await _evaluateResponse<T>(await _client.PutAsync(url, null));
+      return await _evaluateResponse<T>(await _client.PutAsync(url, new JsonContent(payload)));
     }
+
   }
 }

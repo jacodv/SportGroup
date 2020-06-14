@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using AutoMapper;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using GolfGroup.Api.Controllers;
@@ -17,9 +18,15 @@ namespace GolfGroup.Api.Tests.Integration
 {
   public class PlayerTests: IntegrationTestBase
   {
+    private IMapper _mapper;
+
     public PlayerTests():base(ControllerRoutes.Player)
     {
-      
+      var config = new MapperConfiguration(cfg => {
+        cfg.AddProfile<PlayerProfile>();
+      });
+
+      _mapper = config.CreateMapper();
     }
     [Fact]
     public async Task GetPlayers_GivenNoArguments_ShouldReturnPlayers()
@@ -35,13 +42,7 @@ namespace GolfGroup.Api.Tests.Integration
     public async Task FullCycle_GivenValidPlayer_ShouldAddUpdateAndRemovePlayer()
     {
       // arrange
-      var newPlayer = Builder<PlayerCreateUpdateModel>
-        .CreateNew()
-        .With(_ => _.FirstName = Faker.Name.First())
-        .With(_ => _.LastName = Faker.Name.Last())
-        .With(_ => _.Email = Faker.Internet.Email())
-        .With(_ => _.Mobile = Faker.Phone.Number())
-        .Build();
+      var newPlayer = CreatePlayerCreateUpdateModel();
 
       // Create action
       var insertedPlayer = await _evaluateResponse<PlayerModel>(await _client.PostAsync(BaseUrl, new JsonContent(newPlayer)));
@@ -70,6 +71,18 @@ namespace GolfGroup.Api.Tests.Integration
 
       // assert
       players.Any().Should().BeTrue();
+    }
+
+    public static PlayerCreateUpdateModel CreatePlayerCreateUpdateModel()
+    {
+      var newPlayer = Builder<PlayerCreateUpdateModel>
+        .CreateNew()
+        .With(_ => _.FirstName = Faker.Name.First())
+        .With(_ => _.LastName = Faker.Name.Last())
+        .With(_ => _.Email = Faker.Internet.Email())
+        .With(_ => _.Mobile = Faker.Phone.Number())
+        .Build();
+      return newPlayer;
     }
   }
 }

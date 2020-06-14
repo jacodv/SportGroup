@@ -19,11 +19,8 @@ namespace GolfGroup.Api
 {
   public class Startup
   {
-    private readonly IWebHostEnvironment _env;
-
     public Startup(IWebHostEnvironment env, IConfiguration configuration)
     {
-      _env = env;
       Configuration = configuration;
     }
 
@@ -80,11 +77,14 @@ namespace GolfGroup.Api
 
       services.AddControllers()
         .AddJsonOptions(opts => opts.JsonSerializerOptions.PropertyNamingPolicy = null);
+
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider serviceProvider)
     {
+      SetupDatabase.Init(serviceProvider).Wait();
+
       if (env.IsDevelopment())
       {
         app.UseDeveloperExceptionPage();

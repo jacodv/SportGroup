@@ -67,6 +67,9 @@ namespace GolfGroup.Api.Models
 
       CreateMap<PlayerSummary, PlayerSummaryModel>();
       CreateMap<PlayerCreateUpdateModel, Player>();
+      CreateMap<PlayerCreateUpdateModel, PlayerRegisterModel>();
+
+      CreateMap<PlayerRegisterModel, Player>();
     }
   }
 
@@ -103,5 +106,11 @@ namespace GolfGroup.Api.Models
     public string Email { get; set; }
     public string Mobile { get; set; }
     public DateTime DateOfBirth { get; set; }
+  }
+
+  public class PlayerRegisterModel : PlayerCreateUpdateModel
+  {
+    [Required]
+    public string Password { get; set; }
   }
 }

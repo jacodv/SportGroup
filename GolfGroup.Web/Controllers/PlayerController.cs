@@ -42,6 +42,13 @@ namespace GolfGroup.Api.Controllers
       return _mapper.Map<PlayerModel>(await _repository.FindByIdAsync(id));
     }
 
+    [Route(ControllerRoutes.PlayerEmail)]
+    [HttpGet()]
+    public async Task<PlayerModel> GetByName(string email)
+    {
+      return _mapper.Map<PlayerModel>(await _repository.FindOneAsync(_=>_.Email==email));
+    }
+
     [HttpPost]
     public async Task<PlayerModel> Post([FromBody] PlayerCreateUpdateModel value)
     {

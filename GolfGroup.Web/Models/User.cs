@@ -77,14 +77,18 @@ namespace GolfGroup.Api.Models
     public bool IsActive { get; set; }
   }
 
-  public class UserCreateUpdateModel
+  public class UserCreateModel: UserUpdateModel
+  {
+    public string Password { get; set; }
+  }
+  public class UserUpdateModel
   {
     public string Email { get; set; }
-    public string Password { get; set; }
     public string Role { get; set; }
     public List<string> Groups { get; set; }
     public bool IsActive { get; set; }
   }
+
 
   public class TokenModel
   {
@@ -98,7 +102,14 @@ namespace GolfGroup.Api.Models
     public UserProfile()
     {
       CreateMap<User, UserModel>();
-      CreateMap<UserCreateUpdateModel, User>()
+      CreateMap<UserUpdateModel, User>()
+        .ForMember(m => m.Id,
+          opt =>
+            opt.Ignore())
+        .ForMember(m => m.Groups,
+          opt =>
+            opt.Ignore());
+      CreateMap<UserCreateModel, User>()
         .ForMember(m => m.Id,
           opt =>
             opt.Ignore())
@@ -106,6 +117,8 @@ namespace GolfGroup.Api.Models
           opt =>
             opt.Ignore());
 
+      CreateMap<PlayerRegisterModel, User>();
+      CreateMap<PlayerRegisterModel, UserCreateModel>();
     }
   }
 

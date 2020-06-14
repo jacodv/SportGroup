@@ -4,6 +4,7 @@
   {
     public const string Player = "api/player";
     public const string PlayerForGroup = "group/{id}";
+    public const string PlayerEmail = "email/{email}";
 
     public const string Group = "api/group";
 
