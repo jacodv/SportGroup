@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using FluentAssertions;
 using GolfGroup.Api.Helpers;
+using GolfGroup.Api.Models;
 using GolfGroup.Api.Tests.Helpers;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
@@ -16,9 +18,11 @@ namespace GolfGroup.Api.Tests.Integration
   {
     protected IHost _host;
     protected HttpClient _client;
+    private TokenModel _loggedInToken;
+    protected HttpClient _anonClient;
     protected string BaseUrl { get; }
 
-    protected IntegrationTestBase(string baseUrl)
+    protected IntegrationTestBase(string baseUrl, AuthenticateModel authModel=null)
     {
       BaseUrl = baseUrl;
       var hostBuilder = new HostBuilder()
@@ -37,8 +41,23 @@ namespace GolfGroup.Api.Tests.Integration
         //Do the migration asynchronously
         DemoDataHelper.Populate(scope.ServiceProvider).Wait();
       }
-
+      _anonClient = _host.GetTestClient();
       _client = _host.GetTestClient();
+
+      if (authModel == null)
+      {
+        authModel = new AuthenticateModel()
+        {
+          UserName = DemoDataHelper.DefaultAdmin, 
+          Password = DemoDataHelper.DefaultAdminPassword
+        };
+      }
+      _loggedInToken = _post<TokenModel>("api/account/authenticate", authModel).Result;
+      _loggedInToken.Dump("LoggedIn");
+      _client.DefaultRequestHeaders.Authorization = 
+        new AuthenticationHeaderValue(
+        "Bearer",
+        _loggedInToken.Token);
     }
 
     protected static async Task<T> _evaluateResponse<T>(HttpResponseMessage response)

@@ -25,7 +25,7 @@ namespace GolfGroup.Api.Controllers
     [HttpGet]
     public IEnumerable<PlayerSummaryModel> Get()
     {
-      return _mapper.Map<IEnumerable<PlayerSummaryModel>>(_repository.AsQueryable());
+      return _mapper.Map<IEnumerable<PlayerSummaryModel>>(_repository.AsQueryable().ToList());
     }
 
     [Route(ControllerRoutes.PlayerForGroup)]

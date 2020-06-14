@@ -216,7 +216,6 @@ namespace GolfGroup.Api.Controllers
       tournament.Guests.RemoveAt(playerIndexToMove);
       fourBall.Guests.Add(player);
     }
-
     private static void _addPlayerToFourBall(Tournament tournament, FourBall fourBall)
     {
       var playerIndexToMove = tournament.Players.Count==1?

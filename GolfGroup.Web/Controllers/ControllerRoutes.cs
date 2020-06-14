@@ -12,5 +12,7 @@
     public const string TournamentAddPlayers = "{id}/players";
     public const string TournamentAddGuest = "{id}/guest";
     public const string TournamentCalculate = "{id}/calculate";
+    
+    public const string Account = "api/account";
   }
 }
