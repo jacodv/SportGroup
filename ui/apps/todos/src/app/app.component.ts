@@ -9,6 +9,7 @@ import { Todo } from '@myorg/data';
 })
 export class AppComponent {
   todos: Todo[] = [];
+  title: String = "Todos";
 
   constructor(private http: HttpClient) {
     this.fetch();
