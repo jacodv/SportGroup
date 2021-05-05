@@ -14,7 +14,6 @@ namespace GolfGroup.Api.Data
       await _createGroupIndexes(((MongoRepository<Group>) serviceProvider.GetService<IRepository<Group>>()).Collection);
       await _createPlayerIndexes(((MongoRepository<Player>) serviceProvider.GetService<IRepository<Player>>()).Collection);
       await _createTournamentIndexes(((MongoRepository<Tournament>) serviceProvider.GetService<IRepository<Tournament>>()).Collection);
-      await _createUserIndexes(((MongoRepository<User>)serviceProvider.GetService<IRepository<User>>()).Collection);
     }
 
     private static async Task _createGroupIndexes(IMongoCollection<Group> userCollection)
@@ -42,12 +41,6 @@ namespace GolfGroup.Api.Data
         .Ascending(x => x.Date);
       await _createIndex(userCollection, groupAndDateKeys);
 
-    }
-
-    private static async Task _createUserIndexes(IMongoCollection<User> userCollection)
-    {
-      var indexKeys = Builders<User>.IndexKeys.Ascending(x => x.Email);
-      await _createIndex(userCollection, indexKeys);
     }
 
     private static async Task _createIndex<T>(IMongoCollection<T> userCollection, IndexKeysDefinition<T> indexKeys, bool isUnique = true)

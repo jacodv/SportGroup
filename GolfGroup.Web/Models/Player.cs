@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using AutoMapper;
 using GolfGroup.Api.Data;
-using GolfGroup.Api.Interfaces;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -101,9 +99,16 @@ namespace GolfGroup.Api.Models
     [Required]
     public string LastName { get; set; }
     public string NickName { get; set; }
+   
+    private string _email;
+
     [Required]
     [EmailAddress]
-    public string Email { get; set; }
+    public string Email
+    {
+      get => _email;
+      set => _email = value?.ToLower();
+    }
     public string Mobile { get; set; }
     public DateTime DateOfBirth { get; set; }
   }

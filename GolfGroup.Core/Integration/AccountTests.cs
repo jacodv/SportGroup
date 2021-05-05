@@ -1,11 +1,12 @@
-﻿using System.Data.Common;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using AutoMapper;
 using FizzWare.NBuilder;
 using FluentAssertions;
 using GolfGroup.Api.Helpers;
 using GolfGroup.Api.Models;
+using Serilog;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace GolfGroup.Api.Tests.Integration
 {
@@ -13,7 +14,7 @@ namespace GolfGroup.Api.Tests.Integration
   {
     private IMapper _mapper;
 
-    public AccountTests() : base("api/account")
+    public AccountTests(ITestOutputHelper output) : base("api/account", output:output)
     {
       var config = new MapperConfiguration(cfg => {
         cfg.AddProfile<PlayerProfile>();
@@ -45,10 +46,13 @@ namespace GolfGroup.Api.Tests.Integration
     [Fact]
     public async Task AddUser_GivenNewUser_ShouldAddUser()
     {
+      Log.Information("Hello logger");
       // arrange
       var newUser = Builder<UserCreateModel>
         .CreateNew()
         .With(_=>_.Role = GolfGroupRole.GroupAdmin.ToString())
+        .With(_=>_.Password="P@$sw0rd")
+        .With(_=>_.Email=Faker.Internet.Email())
         .Build();
 
       // action
@@ -67,7 +71,9 @@ namespace GolfGroup.Api.Tests.Integration
       // arrange
       var newUser = Builder<UserCreateModel>
         .CreateNew()
-        .With(_ => _.Role = GolfGroupRole.GroupAdmin.ToString())
+        .With(_=>_.Role = GolfGroupRole.GroupAdmin.ToString())
+        .With(_=>_.Password="P@$sw0rd")
+        .With(_=>_.Email=Faker.Internet.Email())
         .Build();
       var createdUser = await _post<UserModel>(BaseUrl, newUser);
 
@@ -78,7 +84,6 @@ namespace GolfGroup.Api.Tests.Integration
 
       // assert
       updatedUser.Email.Should().Be(createdUser.Email);
-      updatedUser.Role.Should().Be(createdUser.Role);
       updatedUser.Groups.Should().BeNullOrEmpty();
 
       await _deleteAndValidate(createdUser.Id, BaseUrl);

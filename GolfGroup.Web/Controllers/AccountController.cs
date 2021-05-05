@@ -1,41 +1,45 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
-using System.Security.Claims;
-using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
 using GolfGroup.Api.Interfaces;
 using GolfGroup.Api.Models;
 using GolfGroup.Api.Settings;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 
 namespace GolfGroup.Api.Controllers
 {
   [Route(ControllerRoutes.Account)]
   [ApiController]
-  [Authorize(Roles = "SystemAdmin")]
+  [Authorize()]
   public class AccountController: ControllerBase
   {
-    private readonly IRepository<User> _users;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly RoleManager<ApplicationRole> _roleManager;
+
     private readonly IRepository<Group> _groups;
     private readonly IRepository<Player> _players;
     private readonly IMapper _mapper;
     private readonly IDatabaseSettings _databaseSettings;
 
-    public AccountController(IRepository<User> users,
+    public AccountController( 
+      UserManager<ApplicationUser> userManager,
+      SignInManager<ApplicationUser> signInManager,
+      RoleManager<ApplicationRole> roleManager,
       IRepository<Group> groups,
       IRepository<Player> players,
       IOptions<DatabaseSettings> databaseSettings,
       IMapper mapper)
     {
-      _users = users;
+      _userManager = userManager;
+      _signInManager = signInManager;
+      _roleManager = roleManager;
       _groups = groups;
       _players = players;
       _mapper = mapper;
@@ -51,39 +55,6 @@ namespace GolfGroup.Api.Controllers
         "Anonymous";
     }
 
-    [AllowAnonymous]
-    [HttpPost("authenticate")]
-    public async Task<ActionResult<TokenModel>> Authenticate([FromBody] AuthenticateModel model)
-    {
-      var user = await _login(model.UserName, model.Password);
-
-      if (user == null)
-        return BadRequest(new { message = "Username or password is incorrect" });
-
-      var tokenHandler = new JwtSecurityTokenHandler();
-      var key = Encoding.ASCII.GetBytes(_databaseSettings.Secret);
-      var tokenDescriptor = new SecurityTokenDescriptor
-      {
-        Subject = new ClaimsIdentity(new Claim[]
-        {
-          new Claim(ClaimTypes.Name, user.Email),
-          new Claim(ClaimTypes.Email, user.Email),
-          new Claim(ClaimTypes.Role, user.Role.ToString())
-        }),
-        Expires = DateTime.UtcNow.AddDays(7),
-        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-      };
-      var token = tokenHandler.CreateToken(tokenDescriptor);
-      var tokenString = tokenHandler.WriteToken(token);
-
-      // return basic user info and authentication token
-      return Ok(new TokenModel
-      {
-        Email = user.Email,
-        Role = user.Role.ToString(),
-        Token = tokenString
-      });
-    }
 
     [AllowAnonymous]
     [HttpPost("register")]
@@ -92,11 +63,13 @@ namespace GolfGroup.Api.Controllers
       if (registerModel == null)
         return BadRequest("Invalid registration data: No data");
 
-      var existingUser = await _users.FindOneAsync(_ => _.Email == registerModel.Email);
+      var existingUser = await _userManager.FindByEmailAsync(registerModel.Email);
       if(existingUser!=null)
        return BadRequest("Invalid registration data: Email exist");
 
-      var userModel = await Create(_mapper.Map<UserCreateModel>(registerModel));
+      var userCreateModel = _mapper.Map<UserCreateModel>(registerModel);
+      userCreateModel.Role = GolfGroupRole.Player.ToString();
+      var userModel = await Create(userCreateModel);
 
       var existingPlayer = await _players.FindOneAsync(_ => _.Email == registerModel.Email);
       if (existingPlayer != null)
@@ -110,15 +83,14 @@ namespace GolfGroup.Api.Controllers
     [HttpGet]
     public IActionResult GetAll()
     {
-      var users = _users.AsQueryable();
-      var model = _mapper.Map<IList<UserModel>>(users);
+      var model = _mapper.Map<IList<UserModel>>(_userManager.Users);
       return Ok(model);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)
     {
-      var user = await _users.FindByIdAsync(id);
+      var user = await _userManager.FindByIdAsync(id);
       var model = _mapper.Map<UserModel>(user);
       return Ok(model);
     }
@@ -127,16 +99,33 @@ namespace GolfGroup.Api.Controllers
     public async Task<ActionResult<UserModel>> Create([FromBody] UserCreateModel model)
     {
       // map model to entity and set id
-      var user = _mapper.Map<User>(model);
+      var user = _mapper.Map<ApplicationUser>(model);
+      user.Email = model.Email;
 
       try
       {
-        user.CreatePassword(model.Password);
         await _validateAndAddGroups(model, user);
 
         // update user 
-        await _users.InsertOneAsync(user);
-        return Ok(_mapper.Map<UserModel>(user));
+        var result = await _userManager.CreateAsync(user, model.Password);
+        if (!result.Succeeded)
+          return BadRequest(result.Errors);
+
+        result = await _userManager.AddToRoleAsync(user, model.Role);
+        if (!result.Succeeded)
+          return BadRequest(result.Errors);
+
+
+        var userModel = _mapper.Map<UserModel>(user);
+        var roles = new List<string>();
+        var userRoles = await _userManager.GetRolesAsync(user);
+        foreach (var roleId in user.Roles)
+        {
+          roles.Add(await _roleManager.GetRoleNameAsync(new ApplicationRole() { Id = ObjectId.Parse(roleId) }));
+        }
+
+        userModel.Role = roles.FirstOrDefault();
+        return Ok(userModel);
       }
       catch (Exception ex)
       {
@@ -149,14 +138,27 @@ namespace GolfGroup.Api.Controllers
     public async Task<ActionResult<UserModel>> Update(string id, [FromBody] UserUpdateModel model)
     {
       // map model to entity and set id
-      var user = _mapper.Map<User>(model);
-      user.Id = ObjectId.Parse(id);
+      
 
       try
       {
+        var existingUser = await _userManager.FindByIdAsync(id);
+        if (existingUser == null)
+          return BadRequest("Invalid UserId");
+
+        existingUser.IsActive = model.IsActive;
+        existingUser.Email = model.Email;
+        //existingUser.Groups = model.Groups;
+
         // update user 
-        await _users.ReplaceOneAsync(user);
-        return Ok(_mapper.Map<UserModel>(user));
+        var result = await _userManager.UpdateAsync(existingUser);
+        if (!result.Succeeded)
+          return BadRequest(result.Errors);
+
+        await _userManager.RemoveFromRolesAsync(existingUser, existingUser.Roles);
+        await _userManager.AddToRoleAsync(existingUser, model.Role);
+
+        return Ok(_mapper.Map<UserModel>(existingUser));
       }
       catch (Exception ex)
       {
@@ -168,41 +170,28 @@ namespace GolfGroup.Api.Controllers
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-      await _users.DeleteByIdAsync(id);
+      var existingUser = await _userManager.FindByIdAsync(id);
+      if (existingUser == null)
+        throw new ArgumentOutOfRangeException($"Invalid user id");
+
+      var result = await _userManager.DeleteAsync(existingUser);
+      if (!result.Succeeded)
+        return BadRequest(result.Errors);
+
       return Ok();
     }
 
-    private async Task<User> _login(string username, string password)
-    {
-      if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
-        return null;
-
-      var user = await _users.FindOneAsync(_ => _.Email == username);
-
-      // check if username exists
-      if (user == null)
-        return null;
-
-      // check if password is correct
-      var userPassword = Convert.FromBase64String(user.Password);
-      var userPasswordSalt = Convert.FromBase64String(user.PasswordSalt);
-      return !Models.User.VerifyPasswordHash(password, userPassword, userPasswordSalt) ?
-        null :
-        user;
-
-      // authentication successful
-    }
-    private async Task _validateAndAddGroups(UserCreateModel model, User user)
+    private async Task _validateAndAddGroups(UserCreateModel model, ApplicationUser applicationUser)
     {
       if (model.Groups!=null && model.Groups.Any())
       {
-        user.Groups.Clear();
+        applicationUser.Groups.Clear();
         foreach (var groupId in model.Groups)
         {
           var group = await _groups.FindByIdAsync(groupId);
           if (@group == null)
             throw new ArgumentOutOfRangeException(nameof(model), $"Invalid group: {groupId}");
-          user.Groups.Add(@group);
+          applicationUser.Groups.Add(@group);
         }
       }
     }

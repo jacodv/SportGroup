@@ -1,19 +1,19 @@
 using System;
-using System.Text;
-using System.Threading.Tasks;
 using AutoMapper;
 using GolfGroup.Api.Data;
 using GolfGroup.Api.Interfaces;
 using GolfGroup.Api.Models;
 using GolfGroup.Api.Settings;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using GolfGroup.Api.StartUp;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
+using MongoDB.Driver;
+using Serilog;
 
 namespace GolfGroup.Api
 {
@@ -37,47 +37,26 @@ namespace GolfGroup.Api
           databaseSettings = serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value;
           return databaseSettings;
         });
+      services.AddScoped(serviceProvider =>
+      {
+        databaseSettings = serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value;
+        return new MongoClient(databaseSettings.ConnectionString).GetDatabase(databaseSettings.DatabaseName);
+      });
+
       services.AddAutoMapper(typeof(Startup));
 
-      var key = Encoding.ASCII.GetBytes(databaseSettings.Secret);
-      services.AddAuthentication(x =>
-        {
-          x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-          x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        })
-        .AddJwtBearer(x =>
-        {
-          x.Events = new JwtBearerEvents
-          {
-            OnTokenValidated = context =>
-            {
-              var users = context.HttpContext.RequestServices.GetRequiredService<IRepository<User>>();
-              var userName = context.Principal.Identity.Name;
-              var user = users.FindOne(_=>_.Email==userName);
-              if (user == null)
-              {
-                // return unauthorized if user no longer exists
-                context.Fail("Unauthorized");
-              }
-              return Task.CompletedTask;
-            }
-          };
-          x.RequireHttpsMetadata = false;
-          x.SaveToken = true;
-          x.TokenValidationParameters = new TokenValidationParameters
-          {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(key),
-            ValidateIssuer = false,
-            ValidateAudience = false
-          };
-        });
-
       services.AddScoped(typeof(IRepository<>), typeof(MongoRepository<>));
+
+      services.ConfigureIdentity(Configuration);
+      services.ConfigureQuarts();
+      services.SetupOpenIddict(Configuration);
 
       services.AddControllers()
         .AddJsonOptions(opts => opts.JsonSerializerOptions.PropertyNamingPolicy = null);
 
+      // Register the worker responsible of seeding the database with the sample clients.
+      // Note: in a real world application, this step should be part of a setup script.
+      services.AddHostedService<Worker>();
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

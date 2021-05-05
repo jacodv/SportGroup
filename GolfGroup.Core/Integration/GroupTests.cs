@@ -1,11 +1,8 @@
-﻿using System;
-using System.Net.Http;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using FluentAssertions;
 using GolfGroup.Api.Controllers;
 using GolfGroup.Api.Models;
 using GolfGroup.Api.Tests.Helpers;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace GolfGroup.Api.Tests.Integration

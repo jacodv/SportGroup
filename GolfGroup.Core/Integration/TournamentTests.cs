@@ -9,7 +9,6 @@ using GolfGroup.Api.Controllers;
 using GolfGroup.Api.Helpers;
 using GolfGroup.Api.Models;
 using GolfGroup.Api.Tests.Helpers;
-using Microsoft.AspNetCore.Mvc;
 using Xunit;
 
 namespace GolfGroup.Api.Tests.Integration

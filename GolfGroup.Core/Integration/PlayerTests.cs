@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 using AutoMapper;
 using FizzWare.NBuilder;
@@ -11,7 +8,6 @@ using GolfGroup.Api.Controllers;
 using GolfGroup.Api.Helpers;
 using GolfGroup.Api.Models;
 using GolfGroup.Api.Tests.Helpers;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace GolfGroup.Api.Tests.Integration
