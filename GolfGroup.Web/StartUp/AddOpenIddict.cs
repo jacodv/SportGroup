@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using GolfGroup.Api.Models;
 using GolfGroup.Api.Settings;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Abstractions;
-using Quartz;
-using AspNetCore.Identity.Mongo;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;

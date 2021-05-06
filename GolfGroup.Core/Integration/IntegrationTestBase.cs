@@ -36,6 +36,7 @@ namespace GolfGroup.Api.Tests.Integration
           // https://github.com/trbenning/serilog-sinks-xunit#serilog-sinks-xunit
           .WriteTo.TestOutput(output)
           .CreateLogger();
+
       }
 
       BaseUrl = baseUrl;

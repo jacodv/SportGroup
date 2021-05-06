@@ -16,7 +16,7 @@ namespace GolfGroup.Api.Controllers
 {
   [Route(ControllerRoutes.Account)]
   [ApiController]
-  [Authorize()]
+  [Authorize(Roles = ApplicationRole.SystemAdminRole)]
   public class AccountController: ControllerBase
   {
     private readonly UserManager<ApplicationUser> _userManager;
